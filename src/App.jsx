@@ -29,16 +29,24 @@ function App() {
         });
         setAppReady(true); // backend disponible
       } catch (err) {
-        console.warn("⏳ Servidor no disponible, continuando en modo local...");
+        console.warn("⏳ Servidor no disponible:", err.message);
         setServerError(true);
 
         // Si estamos en localhost, cargamos la app de todos modos
         if (window.location.hostname === "localhost") {
-          setTimeout(() => setAppReady(true), 500);
-        } else {
-          // Reintenta solo en producción
-          setTimeout(checkServer, 1500);
+          setAppReady(true);
+          return;
         }
+
+        // Si es 404 en producción, asumimos que la ruta /ping no existe, cargamos la app
+        if (err.response && err.response.status === 404) {
+          console.warn("Ruta /ping no encontrada en producción, continuando...");
+          setAppReady(true);
+          return;
+        }
+
+        // Reintento en producción si hay error de red
+        setTimeout(checkServer, 1500);
       }
     };
 
@@ -59,10 +67,10 @@ function App() {
           element={
             <PrivateRoute>
               <div className="flex h-screen overflow-hidden bg-gray-50">
-                {/* 🔹 Sidebar */}
+                {/* Sidebar */}
                 <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-                {/* 🔸 Contenido principal */}
+                {/* Contenido principal */}
                 <div className="flex-1 flex flex-col w-full">
                   <Header title="Panel Principal" onToggleSidebar={toggleSidebar} />
                   <main className="mt-16 p-4 md:ml-64 overflow-y-auto">
