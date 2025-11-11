@@ -224,10 +224,12 @@ export default function Reportes() {
             <div className="space-y-2">
               {selectedSale.items.map((item, i) => (
                 <div key={i} className="flex justify-between border-b pb-1">
-                  <span className="truncate">{item.name}</span>
-                  <span>
-                    {item.qty} x ${item.price.toFixed(2)}
-                  </span>
+                  <div className="truncate">
+                    {item.description} {item.size ? `(${item.size})` : ""} - {item.code}
+                  </div>
+                  <div>
+                    {item.qty} x ${item.price.toFixed(2)} = ${item.subtotal.toFixed(2)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -237,6 +239,7 @@ export default function Reportes() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
