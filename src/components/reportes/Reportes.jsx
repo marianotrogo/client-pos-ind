@@ -15,6 +15,8 @@ export default function Reportes() {
     totalByPayment: {},
   });
 
+  const [selectedSale, setSelectedSale] = useState(null);
+
   const fetchSales = async (fromDate, toDate) => {
     if (!fromDate || !toDate) {
       alert("Seleccioná ambas fechas o usá 'Corte del día'.");
@@ -33,10 +35,7 @@ export default function Reportes() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const salesData = Array.isArray(res.data)
-        ? res.data
-        : res.data.sales || [];
-
+      const salesData = Array.isArray(res.data) ? res.data : res.data.sales || [];
       setSales(salesData);
 
       let totalSales = 0,
@@ -81,11 +80,14 @@ export default function Reportes() {
     fetchSales(today, today);
   };
 
+  const openModal = (sale) => setSelectedSale(sale);
+  const closeModal = () => setSelectedSale(null);
+
   return (
     <div className="p-4">
       <h2 className="text-lg font-semibold mb-4">📊 Reportes de Ventas</h2>
 
-      {/* 🔹 Filtros */}
+      {/* Filtros */}
       <div className="mb-4 flex flex-wrap gap-2 items-center">
         <input
           type="date"
@@ -117,7 +119,7 @@ export default function Reportes() {
         <p className="text-sm text-gray-500">Cargando...</p>
       ) : (
         <>
-          {/* 🔹 Dashboard */}
+          {/* Dashboard */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-5">
             {[
               { color: "green", label: "Total Ventas", value: summary.totalSales },
@@ -140,7 +142,7 @@ export default function Reportes() {
             ))}
           </div>
 
-          {/* 🔹 Totales dinámicos */}
+          {/* Totales dinámicos */}
           {Object.keys(summary.totalByPayment).length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {Object.entries(summary.totalByPayment).map(([type, amount]) => (
@@ -149,15 +151,13 @@ export default function Reportes() {
                   className="bg-gray-100 p-2 rounded-lg shadow-sm text-center w-32"
                 >
                   <span className="font-medium text-xs">{type}</span>
-                  <div className="text-base font-semibold">
-                    ${amount.toFixed(2)}
-                  </div>
+                  <div className="text-base font-semibold">${amount.toFixed(2)}</div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* 🔹 Tabla de ventas */}
+          {/* Tabla de ventas */}
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-300 bg-white text-sm">
               <thead className="bg-gray-100 text-xs">
@@ -172,10 +172,7 @@ export default function Reportes() {
               <tbody>
                 {sales.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="5"
-                      className="text-center py-3 text-gray-500 text-sm"
-                    >
+                    <td colSpan="5" className="text-center py-3 text-gray-500 text-sm">
                       No hay ventas cargadas.
                     </td>
                   </tr>
@@ -185,7 +182,12 @@ export default function Reportes() {
                       <td className="border px-2 py-1">
                         {dayjs(s.createdAt).format("DD/MM/YYYY HH:mm")}
                       </td>
-                      <td className="border px-2 py-1">{s.number}</td>
+                      <td
+                        className="border px-2 py-1 cursor-pointer text-blue-600 hover:underline"
+                        onClick={() => openModal(s)}
+                      >
+                        {s.number}
+                      </td>
                       <td className="border px-2 py-1 truncate">
                         {s.client ? s.client.name : "Consumidor Final"}
                       </td>
@@ -204,6 +206,36 @@ export default function Reportes() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Modal responsive */}
+      {selectedSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4 relative overflow-y-auto max-h-[90vh]">
+            <button
+              onClick={closeModal}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold"
+            >
+              ✖
+            </button>
+            <h3 className="text-lg font-semibold mb-3">
+              Productos de la venta #{selectedSale.number}
+            </h3>
+            <div className="space-y-2">
+              {selectedSale.items.map((item, i) => (
+                <div key={i} className="flex justify-between border-b pb-1">
+                  <span className="truncate">{item.name}</span>
+                  <span>
+                    {item.qty} x ${item.price.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-right font-semibold">
+              Total: ${selectedSale.total.toFixed(2)}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
