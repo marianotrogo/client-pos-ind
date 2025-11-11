@@ -11,50 +11,22 @@ import Configuracion from "./pages/Configuracion";
 import Reportes from "./components/reportes/Reportes";
 import LoginPage from "./pages/LoginPage";
 import PrivateRoute from "./components/PrivateRoute";
-import GlobalLoader from "./components/GlobalLoader";
-import api from "./api/axios";
+import Loader from "./components/GlobalLoader";
+
 
 function App() {
-  const [appReady, setAppReady] = useState(false);
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [serverError, setServerError] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
+
   useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        await api.get("/ping", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        setAppReady(true); // backend disponible
-      } catch (err) {
-        console.warn("⏳ Servidor no disponible:", err.message);
-        setServerError(true);
-
-        // Si estamos en localhost, cargamos la app de todos modos
-        if (window.location.hostname === "localhost") {
-          setAppReady(true);
-          return;
-        }
-
-        // Si es 404 en producción, asumimos que la ruta /ping no existe, cargamos la app
-        if (err.response && err.response.status === 404) {
-          console.warn("Ruta /ping no encontrada en producción, continuando...");
-          setAppReady(true);
-          return;
-        }
-
-        // Reintento en producción si hay error de red
-        setTimeout(checkServer, 1500);
-      }
-    };
-
-    checkServer();
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 1000);
+    return () => clearTimeout(timer);
   }, []);
-
-  if (!appReady) return <GlobalLoader serverError={serverError} />;
-
   return (
     <BrowserRouter>
       <Toaster position="top-right" reverseOrder={false} />
