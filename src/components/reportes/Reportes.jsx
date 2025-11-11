@@ -1,88 +1,201 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import api from "../../api/axios.js";
+import dayjs from "dayjs";
 
 export default function Reportes() {
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ from: "", to: "" });
   const [sales, setSales] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    from: "",
-    to: "",
-    userId: "",
-    clientId: "",
-    status: "",
+  const [summary, setSummary] = useState({
+    totalSales: 0,
+    totalItems: 0,
+    totalCCA: 0,
+    totalEFECTIVO: 0,
+    totalDIGITAL: 0,
+    totalByPayment: {},
   });
-  const [summary, setSummary] = useState({ totalSales: 0, totalItems: 0 });
 
-  const fetchSales = async () => {
+  const fetchSales = async (fromDate, toDate) => {
+    if (!fromDate || !toDate) {
+      alert("Seleccioná ambas fechas o usá 'Corte del día'.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const params = { ...filters };
-      const res = await api.get("/sales/report", { params });
-      setSales(res.data.sales);
-      setSummary({ totalSales: res.data.totalSales, totalItems: res.data.totalItems });
+      const token = localStorage.getItem("token");
+      const params = {};
+      if (fromDate) params.from = dayjs(fromDate).startOf("day").toISOString();
+      if (toDate) params.to = dayjs(toDate).endOf("day").toISOString();
+
+      const res = await api.get("/sales/report", {
+        params,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const salesData = Array.isArray(res.data)
+        ? res.data
+        : res.data.sales || [];
+
+      setSales(salesData);
+
+      let totalSales = 0,
+        totalItems = 0,
+        totalCCA = 0,
+        totalEFECTIVO = 0,
+        totalDIGITAL = 0,
+        totalByPayment = {};
+
+      salesData.forEach((sale) => {
+        totalSales += sale.total;
+        totalItems += sale.items.reduce((sum, item) => sum + item.qty, 0);
+
+        sale.payments.forEach((p) => {
+          if (!totalByPayment[p.type]) totalByPayment[p.type] = 0;
+          totalByPayment[p.type] += p.amount;
+
+          if (p.type === "CCA") totalCCA += p.amount;
+          else if (p.type === "EFECTIVO") totalEFECTIVO += p.amount;
+          else totalDIGITAL += p.amount;
+        });
+      });
+
+      setSummary({
+        totalSales,
+        totalItems,
+        totalCCA,
+        totalEFECTIVO,
+        totalDIGITAL,
+        totalByPayment,
+      });
     } catch (err) {
-      console.error(err);
+      console.error("Error al traer ventas:", err);
+      alert("Error al traer ventas");
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchSales(); }, []);
+  const corteDelDia = () => {
+    const today = dayjs().format("YYYY-MM-DD");
+    setFilters({ from: today, to: today });
+    fetchSales(today, today);
+  };
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-4">Reportes de Ventas</h2>
+    <div className="p-3">
+      <h2 className="text-base font-semibold mb-3">📊 Reportes de Ventas</h2>
 
       {/* 🔹 Filtros */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} className="border px-2 py-1 rounded" />
-        <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} className="border px-2 py-1 rounded" />
-        <input type="text" placeholder="Usuario ID" value={filters.userId} onChange={e => setFilters(f => ({ ...f, userId: e.target.value }))} className="border px-2 py-1 rounded" />
-        <input type="text" placeholder="Cliente ID" value={filters.clientId} onChange={e => setFilters(f => ({ ...f, clientId: e.target.value }))} className="border px-2 py-1 rounded" />
-        <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="border px-2 py-1 rounded">
-          <option value="">Todos</option>
-          <option value="COMPLETED">Completadas</option>
-          <option value="PENDING">Pendientes</option>
-          <option value="CANCELLED">Canceladas</option>
-        </select>
-        <button onClick={fetchSales} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Filtrar</button>
+      <div className="mb-3 flex flex-wrap gap-2 items-center">
+        <input
+          type="date"
+          value={filters.from}
+          onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+          className="border px-2 py-1 rounded text-sm"
+        />
+        <input
+          type="date"
+          value={filters.to}
+          onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+          className="border px-2 py-1 rounded text-sm"
+        />
+        <button
+          onClick={() => fetchSales(filters.from, filters.to)}
+          className="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600"
+        >
+          Filtrar
+        </button>
+        <button
+          onClick={corteDelDia}
+          className="bg-purple-500 text-white px-2 py-1 rounded text-sm hover:bg-purple-600"
+        >
+          Corte del día
+        </button>
       </div>
 
-      {/* 🔹 Resumen */}
-      <div className="mb-4">
-        <span className="mr-4 font-semibold">Total Ventas: ${summary.totalSales.toFixed(2)}</span>
-        <span className="font-semibold">Total Items: {summary.totalItems}</span>
-      </div>
-
-      {/* 🔹 Tabla */}
-      {loading ? <p>Cargando...</p> :
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-200 text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-2 text-left">#</th>
-              <th className="border p-2 text-left">Fecha</th>
-              <th className="border p-2 text-left">Usuario</th>
-              <th className="border p-2 text-left">Cliente</th>
-              <th className="border p-2 text-left">Total</th>
-              <th className="border p-2 text-left">Estado</th>
-              <th className="border p-2 text-left">Pago</th>
-            </tr>
-          </thead>
-          <tbody className="text-xs">
-            {sales.map(s => (
-              <tr key={s.id} className="hover:bg-gray-50">
-                <td className="border px-2 py-1">{s.number}</td>
-                <td className="border px-2 py-1">{new Date(s.createdAt).toLocaleString()}</td>
-                <td className="border px-2 py-1">{s.user.name}</td>
-                <td className="border px-2 py-1">{s.client?.name || "-"}</td>
-                <td className="border px-2 py-1">${s.total.toFixed(2)}</td>
-                <td className="border px-2 py-1">{s.status}</td>
-                <td className="border px-2 py-1">{s.paymentType}</td>
-              </tr>
+      {/* 🔹 Dashboard cards */}
+      {loading ? (
+        <p className="text-sm text-gray-500">Cargando...</p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {[
+              { color: "green", label: "Total Ventas", value: summary.totalSales },
+              { color: "blue", label: "Productos Vendidos", value: summary.totalItems },
+              { color: "yellow", label: "Total CCA", value: summary.totalCCA },
+              { color: "red", label: "Total EFECTIVO", value: summary.totalEFECTIVO },
+              { color: "purple", label: "Total Digitales", value: summary.totalDIGITAL },
+            ].map((c, i) => (
+              <div
+                key={i}
+                className={`bg-${c.color}-100 p-1.5 rounded shadow w-32`}
+              >
+                <span className="font-medium text-xs block">{c.label}</span>
+                <div className="text-base font-semibold truncate">
+                  {typeof c.value === "number" ? `$${c.value.toFixed(2)}` : c.value}
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>}
+          </div>
+
+          {/* Totales dinámicos */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {Object.entries(summary.totalByPayment).map(([type, amount]) => (
+              <div key={type} className="bg-gray-100 p-1.5 rounded shadow w-32">
+                <span className="font-medium text-xs">{type}</span>
+                <div className="text-base font-semibold">${amount.toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 🔹 Tabla de ventas */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-300 bg-white text-sm">
+              <thead className="bg-gray-100 text-xs">
+                <tr>
+                  <th className="border px-2 py-1 text-left">Fecha</th>
+                  <th className="border px-2 py-1 text-left">N° Venta</th>
+                  <th className="border px-2 py-1 text-left">Cliente</th>
+                  <th className="border px-2 py-1 text-left">Total</th>
+                  <th className="border px-2 py-1 text-left">Pagos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="text-center py-3 text-gray-500 text-sm"
+                    >
+                      No hay ventas cargadas.
+                    </td>
+                  </tr>
+                ) : (
+                  sales.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="border px-2 py-1">
+                        {dayjs(s.createdAt).format("DD/MM/YYYY HH:mm")}
+                      </td>
+                      <td className="border px-2 py-1">{s.number}</td>
+                      <td className="border px-2 py-1 truncate">
+                        {s.client ? s.client.name : "Consumidor Final"}
+                      </td>
+                      <td className="border px-2 py-1">${s.total.toFixed(2)}</td>
+                      <td className="border px-2 py-1">
+                        {s.payments.map((p, i) => (
+                          <div key={i} className="text-xs">
+                            {p.type}: ${p.amount.toFixed(2)}
+                          </div>
+                        ))}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }

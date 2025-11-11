@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "../api/axios.js";
+import api from "../api/axios.js";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
@@ -16,13 +16,15 @@ export default function SettingsPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resettingTickets, setResettingTickets] = useState(false);
 
   // 🔹 Cargar configuración al montar
   useEffect(() => {
     const fetchSettings = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("/settings");
+        const res = await api.get("/settings");
         if (res.data) setSettings(res.data);
       } catch (err) {
         console.error(err);
@@ -43,7 +45,7 @@ export default function SettingsPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post("/settings", settings);
+      const res = await api.post("/settings", settings);
       setSettings(res.data);
       toast.success("Configuración guardada correctamente");
     } catch (err) {
@@ -51,6 +53,42 @@ export default function SettingsPage() {
       toast.error("Error al guardar configuración");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    const confirmReset = window.confirm(
+      "⚠️ Esto eliminará TODOS los datos (ventas, productos, clientes, etc). ¿Deseas continuar?"
+    );
+    if (!confirmReset) return;
+
+    setResetting(true);
+    try {
+      await api.post("/admin/reset-db");
+      toast.success("Base de datos reseteada correctamente");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al resetear la base de datos");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleResetTickets = async () => {
+    const confirmReset = window.confirm(
+      "⚠️ Esto eliminará TODAS las ventas y reiniciará la numeración de tickets. ¿Deseas continuar?"
+    );
+    if (!confirmReset) return;
+
+    setResettingTickets(true);
+    try {
+      await api.post("/admin/reset-tickets");
+      toast.success("Tickets reinicializados correctamente");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al reinicializar tickets");
+    } finally {
+      setResettingTickets(false);
     }
   };
 
@@ -159,13 +197,35 @@ export default function SettingsPage() {
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-        >
-          {loading ? "Guardando..." : "Guardar configuración"}
-        </button>
+        <div className="flex flex-wrap items-center gap-4 mt-6">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+          >
+            {loading ? "Guardando..." : "Guardar configuración"}
+          </button>
+
+          {/* 🔹 Reinicializar tickets */}
+          <button
+            type="button"
+            onClick={handleResetTickets}
+            disabled={resettingTickets}
+            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition"
+          >
+            {resettingTickets ? "Reinicializando..." : "Reinicializar Tickets"}
+          </button>
+
+          {/* 🔹 Resetear base completa */}
+          <button
+            type="button"
+            onClick={handleResetDatabase}
+            disabled={resetting}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+          >
+            {resetting ? "Reseteando..." : "Resetear Base de Datos"}
+          </button>
+        </div>
       </form>
     </div>
   );
