@@ -18,9 +18,8 @@ export default function SalesPage() {
   const [total, setTotal] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [userId] = useState(1);
-  const [isExchangeMode, setIsExchangeMode] = useState(false); // 🆕 modo cambio
+  const [isExchangeMode, setIsExchangeMode] = useState(false);
   const [showCobroModal, setShowCobroModal] = useState(false);
-
 
   useEffect(() => {
     const totalIngresos = products
@@ -32,7 +31,6 @@ export default function SalesPage() {
       .reduce((acc, p) => acc + p.price * p.qty, 0);
 
     const sub = totalEgresos - totalIngresos;
-
     const discountAmount = sub * (discount / 100);
     const surchargeAmount = sub * (surcharge / 100);
     const totalCalculado = sub - discountAmount + surchargeAmount;
@@ -40,8 +38,6 @@ export default function SalesPage() {
     setSubtotal(sub);
     setTotal(totalCalculado);
   }, [products, discount, surcharge]);
-
-
 
   useEffect(() => {
     const handleUpdateQty = (e) => {
@@ -54,7 +50,6 @@ export default function SalesPage() {
         )
       );
     };
-
     window.addEventListener("updateQty", handleUpdateQty);
     return () => window.removeEventListener("updateQty", handleUpdateQty);
   }, []);
@@ -82,8 +77,6 @@ export default function SalesPage() {
       prev.map((p) => {
         if (p.variantId === variantId) {
           const newIsReturn = !p.isReturn;
-          // si es devolución, el subtotal se mantiene igual (precio * cantidad)
-          // pero el cálculo general lo trata como ingreso
           return { ...p, isReturn: newIsReturn };
         }
         return p;
@@ -91,19 +84,16 @@ export default function SalesPage() {
     );
   };
 
-
   const handleConfirmSale = async (paymentData, print = false) => {
     const isExchange = products.some((p) => p.isReturn);
-
-
     if (products.length === 0) {
-      toast.error("Agrega productos antes de confirmar la venta", { duration: 4000 });
+      toast.error("Agrega productos antes de confirmar la venta");
       return;
     }
 
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("Usuario no autenticado", { duration: 4000 });
+      toast.error("Usuario no autenticado");
       return;
     }
 
@@ -133,36 +123,14 @@ export default function SalesPage() {
     };
 
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${token}` },
-      };
-
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       const res = await axios.post("/sales", payload, config);
 
       if (print) {
-        printTicket({
-          ...res.data.sale,
-          isExchange
-        });
+        printTicket({ ...res.data.sale, isExchange });
       }
 
-      if (isExchange) {
-        toast.custom(
-          (t) => (
-            <div
-              className={`${t.visible ? 'animate-enter' : 'animate-leave'
-                } max-w-xs w-full bg-blue-500 text-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
-            >
-              <div className="flex-1 p-4">
-                <p className="text-sm font-bold">🔄 Cambio registrado correctamente</p>
-              </div>
-            </div>
-          ),
-          { duration: 4000 }
-        );
-      } else {
-        toast.success("✅ Venta registrada correctamente", { duration: 4000 });
-      }
+      toast.success(isExchange ? "🔄 Cambio registrado correctamente" : "✅ Venta registrada correctamente");
 
       // Reset
       setClient(null);
@@ -174,46 +142,46 @@ export default function SalesPage() {
       setShowCobroModal(false);
     } catch (error) {
       console.error("Error creando venta:", error);
-      toast.error(error.response?.data?.message || error.message || "Error al crear la venta");
+      toast.error(error.response?.data?.message || "Error al crear la venta");
     }
   };
 
-
-
-
   return (
-    <div className="p-6 space-y-5 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-semibold text-gray-800 border-b pb-2">
+    <div className="p-4 sm:p-6 space-y-5 bg-gray-50 min-h-screen">
+      <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 border-b pb-2">
         💵 Nueva Venta
       </h1>
 
-      <div className="flex justify-between items-center gap-6">
+      {/* 🔹 Controles superiores */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <button
           onClick={() => setShowModal(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-600 transition"
+          className="bg-blue-500 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-600 transition text-sm sm:text-base"
         >
           🔍 Buscar Producto
         </button>
 
-        <div className="flex-1">
+        <div className="flex-1 w-full">
           <ClientSearch onSelect={setClient} />
           {client && (
-            <p className="text-xs text-gray-600 mt-1">
-              Cliente seleccionado:{" "}
-              <span className="font-medium">{client.name}</span>
+            <p className="text-xs text-gray-600 mt-1 text-center sm:text-left">
+              Cliente: <span className="font-medium">{client.name}</span>
             </p>
           )}
         </div>
 
-        {/*  Checkbox de modo cambio */}
-        <ExchangeButton
-          isExchangeMode={isExchangeMode}
-          onToggle={setIsExchangeMode}
-        />
+        <div className="flex justify-center sm:justify-end">
+          <ExchangeButton
+            isExchangeMode={isExchangeMode}
+            onToggle={setIsExchangeMode}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6 mt-4">
-        <div className="col-span-2 bg-white border rounded-md shadow-sm p-3">
+      {/* 🔹 Cuerpo principal (tabla + resumen) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4">
+        {/* Tabla de productos */}
+        <div className="lg:col-span-2 bg-white border rounded-md shadow-sm p-3 overflow-x-auto">
           <ProductsTable
             products={products}
             onRemove={handleRemoveProduct}
@@ -222,6 +190,7 @@ export default function SalesPage() {
           />
         </div>
 
+        {/* Resumen de venta */}
         <div className="bg-white border rounded-md shadow-sm p-3">
           <SaleSummary
             subtotal={subtotal}
@@ -235,9 +204,10 @@ export default function SalesPage() {
         </div>
       </div>
 
-      <div className="text-right">
+      {/* Botón de confirmación */}
+      <div className="flex justify-center sm:justify-end">
         <button
-          className="bg-green-500 text-white px-6 py-2 rounded-md shadow-sm hover:bg-green-600 transition"
+          className="bg-green-500 text-white px-6 py-2 rounded-md shadow-sm hover:bg-green-600 transition text-sm sm:text-base w-full sm:w-auto"
           onClick={() => setShowCobroModal(true)}
         >
           ✅ Confirmar Venta
@@ -252,8 +222,6 @@ export default function SalesPage() {
           onConfirm={(paymentData, print) => handleConfirmSale(paymentData, print)}
         />
       )}
-
-
 
       {showModal && (
         <ProductModal

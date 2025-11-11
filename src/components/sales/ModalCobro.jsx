@@ -23,28 +23,29 @@ export default function ModalCobro({ total, client, onClose, onConfirm }) {
 
     const totalPagado = Number(efectivo) + Number(digital);
     const restante = total - totalPagado;
-    if (restante < 0) setError("El total pagado no puede superar el total a pagar.");
+    if (restante < 0) setError("El total pagado no puede superar el total.");
     else setError("");
 
     setResto(restante > 0 ? restante : 0);
   }, [efectivo, digital, total, isCuentaCorriente]);
 
   const handleConfirm = (print = false) => {
-    // ✅ Cuenta corriente
     if (isCuentaCorriente) {
       if (!client?.id) {
-        setError("Debe seleccionar un cliente para cobrar a cuenta corriente.");
+        setError("Debe seleccionar un cliente para cuenta corriente.");
         return;
       }
-      onConfirm({ paymentType: "CCA", paymentDetails: [{ type: "CCA", amount: total }] }, print);
+      onConfirm(
+        { paymentType: "CCA", paymentDetails: [{ type: "CCA", amount: total }] },
+        print
+      );
       return;
     }
 
-    // ✅ Pago mixto
     if (isMixto) {
       const totalPagado = Number(efectivo) + Number(digital);
       if (totalPagado.toFixed(2) !== total.toFixed(2)) {
-        setError("El total pagado debe coincidir con el total a pagar.");
+        setError("El total pagado debe coincidir con el total.");
         return;
       }
       if (!metodoDigital) {
@@ -59,76 +60,98 @@ export default function ModalCobro({ total, client, onClose, onConfirm }) {
       return;
     }
 
-    // ✅ Pago único en efectivo
     if (efectivo.toFixed(2) === total.toFixed(2)) {
-      onConfirm({ paymentType: "EFECTIVO", paymentDetails: [{ type: "EFECTIVO", amount: total }] }, print);
+      onConfirm(
+        { paymentType: "EFECTIVO", paymentDetails: [{ type: "EFECTIVO", amount: total }] },
+        print
+      );
       return;
     }
 
-    // ✅ Pago único digital
     if (digital.toFixed(2) === total.toFixed(2) && metodoDigital) {
-      onConfirm({ paymentType: metodoDigital, paymentDetails: [{ type: metodoDigital, amount: total }] }, print);
+      onConfirm(
+        { paymentType: metodoDigital, paymentDetails: [{ type: metodoDigital, amount: total }] },
+        print
+      );
       return;
     }
 
-    setError("Ingrese un monto válido y seleccione un método de pago.");
+    setError("Ingrese un monto válido o seleccione un método de pago.");
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-white w-[700px] h-[550px] p-6 flex flex-col">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-2 sm:p-0">
+      <div className="bg-white w-full sm:w-[640px] h-auto sm:h-[520px] rounded-lg shadow-xl flex flex-col p-4 sm:p-6">
+        {/* Header */}
         <div className="flex justify-between items-center border-b pb-2">
-          <h2 className="text-xl font-semibold text-gray-800">💰 Cobro de Venta</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-500 text-xl">✕</button>
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800">💰 Cobro de Venta</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-red-500 text-lg">
+            ✕
+          </button>
         </div>
 
-        <div className="mt-3 border-b pb-2">
-          <p className="text-gray-700 text-sm">
+        {/* Info cliente */}
+        <div className="mt-3 border-b pb-2 text-sm sm:text-base">
+          <p className="text-gray-700">
             Cliente: <span className="font-medium">{client?.name || "Consumidor Final"}</span>
           </p>
-          <p className="text-lg font-bold text-green-700 mt-1">Total a pagar: ${total.toFixed(2)}</p>
+          <p className="text-green-700 font-bold mt-1 text-lg">
+            Total a pagar: ${total.toFixed(2)}
+          </p>
         </div>
 
-        <div className="mt-4 flex justify-between items-center">
-          <label className="flex items-center gap-2 text-sm">
+        {/* Opciones */}
+        <div className="mt-3 flex justify-between text-sm">
+          <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={isMixto}
-              onChange={() => { setIsMixto(!isMixto); setIsCuentaCorriente(false); }}
+              onChange={() => {
+                setIsMixto(!isMixto);
+                setIsCuentaCorriente(false);
+              }}
             />
             Pago mixto
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={isCuentaCorriente}
-              onChange={() => { setIsCuentaCorriente(!isCuentaCorriente); setIsMixto(false); }}
+              onChange={() => {
+                setIsCuentaCorriente(!isCuentaCorriente);
+                setIsMixto(false);
+              }}
             />
-            Venta a cuenta corriente
+            Cuenta corriente
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 mt-5 flex-1">
-          <div className="border p-4 bg-gray-50">
-            <h3 className="font-semibold mb-3">Pago en efectivo</h3>
+        {/* Métodos */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 flex-1 text-sm">
+          <div className="border rounded-md p-3 bg-gray-50">
+            <h3 className="font-semibold mb-2">Efectivo</h3>
             <input
               type="number"
               disabled={isCuentaCorriente}
-              className="border p-2 w-full text-right"
+              className="border p-1.5 w-full text-right rounded text-sm"
               value={efectivo}
               onChange={(e) => setEfectivo(Number(e.target.value) || 0)}
             />
           </div>
 
-          <div className="border p-4 bg-gray-50">
-            <h3 className="font-semibold mb-3">Pago digital</h3>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {digitalMethods.map((m) => (
+          <div className="border rounded-md p-3 bg-gray-50">
+            <h3 className="font-semibold mb-2">Digital</h3>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {["TRANSFERENCIA", "TARJETA"].map((m) => (
                 <button
                   key={m}
                   disabled={isCuentaCorriente}
                   onClick={() => setMetodoDigital(m)}
-                  className={`px-3 py-1 border rounded text-sm ${metodoDigital === m ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
+                  className={`px-2.5 py-1 rounded border text-xs sm:text-sm transition ${
+                    metodoDigital === m
+                      ? "bg-blue-500 text-white border-blue-500"
+                      : "hover:bg-gray-100"
+                  }`}
                 >
                   {m}
                 </button>
@@ -137,31 +160,55 @@ export default function ModalCobro({ total, client, onClose, onConfirm }) {
             <input
               type="number"
               disabled={isCuentaCorriente}
-              className="border p-2 w-full text-right"
+              className="border p-1.5 w-full text-right rounded text-sm"
               value={digital}
               onChange={(e) => setDigital(Number(e.target.value) || 0)}
             />
           </div>
         </div>
 
-        <div className="mt-3 text-right">
-          {error && <p className="text-red-500 text-sm mb-1">{error}</p>}
+        {/* Estado y errores */}
+        <div className="mt-2 text-right text-sm">
+          {error && <p className="text-red-500 mb-1">{error}</p>}
           {isCuentaCorriente && client?.id && (
-            <p className="text-blue-600 text-sm font-medium">
+            <p className="text-blue-600">
               Se cargará ${total.toFixed(2)} a la cuenta corriente del cliente
             </p>
           )}
           {!isCuentaCorriente && (
-            <p className="text-gray-700 text-sm">
-              Resto a pagar: <span className={`font-semibold ${resto === 0 ? "text-green-600" : "text-orange-500"}`}>${resto.toFixed(2)}</span>
+            <p className="text-gray-700">
+              Resto a pagar:{" "}
+              <span
+                className={`font-semibold ${
+                  resto === 0 ? "text-green-600" : "text-orange-500"
+                }`}
+              >
+                ${resto.toFixed(2)}
+              </span>
             </p>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 mt-4 border-t pt-3">
-          <button onClick={onClose} className="px-4 py-2 border text-gray-600 hover:bg-gray-100">Cancelar</button>
-          <button onClick={() => handleConfirm(false)} className="px-4 py-2 bg-green-500 text-white hover:bg-green-600">Cobrar</button>
-          <button onClick={() => handleConfirm(true)} className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600">Cobrar e Imprimir</button>
+        {/* Botones */}
+        <div className="flex flex-wrap justify-end gap-2 mt-4 border-t pt-3">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 border rounded text-gray-600 hover:bg-gray-100 text-sm"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => handleConfirm(false)}
+            className="px-3 py-1.5 rounded bg-green-500 text-white hover:bg-green-600 text-sm"
+          >
+            Cobrar
+          </button>
+          <button
+            onClick={() => handleConfirm(true)}
+            className="px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 text-sm"
+          >
+            Cobrar e Imprimir
+          </button>
         </div>
       </div>
     </div>

@@ -14,47 +14,66 @@ export default function LoginPage() {
       const res = await axios.post("/auth/login", { email, password });
       const { token, user } = res.data;
 
-      // Guardar token y usuario
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
       toast.success("Login exitoso");
-      navigate("/"); // redirige a Home
+      navigate("/");
     } catch (error) {
       toast.error(error.response?.data?.message || "Error al iniciar sesión");
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded shadow-md w-96 space-y-4"
-      >
-        <h2 className="text-2xl font-semibold text-center">Iniciar Sesión</h2>
-        <input
-          type="email"
-          placeholder="Correo"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-        >
-          Ingresar
-        </button>
-      </form>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 sm:p-10">
+        {/* 🔹 Logo o título */}
+        <h2 className="text-2xl sm:text-3xl font-bold text-center text-blue-600 mb-6">
+          Iniciar Sesión
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Correo electrónico
+            </label>
+            <input
+              type="email"
+              placeholder="ejemplo@correo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              placeholder="Tu contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 transition active:scale-95"
+          >
+            Ingresar
+          </button>
+        </form>
+
+        {/* 🔸 Footer opcional */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          © {new Date().getFullYear()} POS Tienda — Todos los derechos reservados
+        </p>
+      </div>
     </div>
   );
 }

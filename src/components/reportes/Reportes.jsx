@@ -82,11 +82,11 @@ export default function Reportes() {
   };
 
   return (
-    <div className="p-3">
-      <h2 className="text-base font-semibold mb-3">📊 Reportes de Ventas</h2>
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-4">📊 Reportes de Ventas</h2>
 
       {/* 🔹 Filtros */}
-      <div className="mb-3 flex flex-wrap gap-2 items-center">
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
         <input
           type="date"
           value={filters.from}
@@ -101,24 +101,24 @@ export default function Reportes() {
         />
         <button
           onClick={() => fetchSales(filters.from, filters.to)}
-          className="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600"
+          className="bg-blue-500 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-600 transition"
         >
           Filtrar
         </button>
         <button
           onClick={corteDelDia}
-          className="bg-purple-500 text-white px-2 py-1 rounded text-sm hover:bg-purple-600"
+          className="bg-purple-500 text-white px-3 py-1.5 rounded text-sm hover:bg-purple-600 transition"
         >
           Corte del día
         </button>
       </div>
 
-      {/* 🔹 Dashboard cards */}
       {loading ? (
         <p className="text-sm text-gray-500">Cargando...</p>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2 mb-4">
+          {/* 🔹 Dashboard */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-5">
             {[
               { color: "green", label: "Total Ventas", value: summary.totalSales },
               { color: "blue", label: "Productos Vendidos", value: summary.totalItems },
@@ -128,9 +128,11 @@ export default function Reportes() {
             ].map((c, i) => (
               <div
                 key={i}
-                className={`bg-${c.color}-100 p-1.5 rounded shadow w-32`}
+                className={`bg-${c.color}-100 p-2 rounded-lg shadow-sm text-center`}
               >
-                <span className="font-medium text-xs block">{c.label}</span>
+                <span className="font-medium text-xs block text-gray-700">
+                  {c.label}
+                </span>
                 <div className="text-base font-semibold truncate">
                   {typeof c.value === "number" ? `$${c.value.toFixed(2)}` : c.value}
                 </div>
@@ -138,15 +140,22 @@ export default function Reportes() {
             ))}
           </div>
 
-          {/* Totales dinámicos */}
-          <div className="flex flex-wrap gap-2 mb-5">
-            {Object.entries(summary.totalByPayment).map(([type, amount]) => (
-              <div key={type} className="bg-gray-100 p-1.5 rounded shadow w-32">
-                <span className="font-medium text-xs">{type}</span>
-                <div className="text-base font-semibold">${amount.toFixed(2)}</div>
-              </div>
-            ))}
-          </div>
+          {/* 🔹 Totales dinámicos */}
+          {Object.keys(summary.totalByPayment).length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {Object.entries(summary.totalByPayment).map(([type, amount]) => (
+                <div
+                  key={type}
+                  className="bg-gray-100 p-2 rounded-lg shadow-sm text-center w-32"
+                >
+                  <span className="font-medium text-xs">{type}</span>
+                  <div className="text-base font-semibold">
+                    ${amount.toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* 🔹 Tabla de ventas */}
           <div className="overflow-x-auto">

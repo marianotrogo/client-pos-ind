@@ -7,14 +7,16 @@ export default function MiniMenuClientes({ onChange, activo }) {
   ];
 
   return (
-    <div className="flex gap-2 border-b pb-2">
+    <div className="grid grid-cols-2 sm:flex gap-2 border-b pb-2">
       {opciones.map((op) => (
         <button
           key={op.key}
           onClick={() => onChange(op.key)}
-          className={`px-3 py-1 border rounded text-sm ${
-            activo === op.key ? "bg-blue-500 text-white" : "bg-white"
-          }`}
+          className={`px-3 py-2 rounded text-sm font-medium transition-colors
+            ${activo === op.key
+              ? "bg-blue-500 text-white shadow-md"
+              : "bg-gray-100 hover:bg-gray-200 text-gray-800 border"
+            }`}
         >
           {op.label}
         </button>
